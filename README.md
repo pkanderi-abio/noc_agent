@@ -1,4 +1,4 @@
-# README.md (excerpt)
+# README.md
 ```markdown
 ## Dynamic User Management
 
