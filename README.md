@@ -1,156 +1,126 @@
-# README.md
-```markdown
-## Dynamic User Management
+noc_agent
 
-### List Users (admin)
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:8000/users
-```
+Network Operations Center (NOC) Agent
 
-### Create User (admin)
-```bash
-curl -X POST -H "Authorization: Bearer <token>" \
-  -d "username=jane&password=secret&roles=user" \
-  http://localhost:8000/users
-```
+A cross-platform, AI-driven network monitoring and analysis agent that provides:
 
-### Delete User (admin)
-```bash
-curl -X DELETE -H "Authorization: Bearer <token>" \
-  http://localhost:8000/users/jane
-```
+Network Scanning via nmap
 
-### Reset Password (admin)
-```bash
-curl -X POST -H "Authorization: Bearer <token>" \
-  -d "new_password=newsecret" \
-  http://localhost:8000/users/jane/reset_password
-```
+Packet Capture & Analysis via scapy
 
-### Update Roles (admin)
-```bash
-curl -X PUT -H "Authorization: Bearer <token>" \
-  -d "roles=admin user" \
-  http://localhost:8000/users/jane/roles
-  
-# NOC Agent
+Anomaly Detection using IsolationForest
 
-[![CI](https://github.com/your_org/noc_agent/actions/workflows/ci.yml/badge.svg)]()
+Threat Classification using RandomForestClassifier
 
-## Setup Database Migrations
+Log Analysis via an NLP summarization stub (extendable)
 
-Initialize Alembic (if first time):
-```bash
-alembic init alembic
-```
+REST API powered by FastAPI with OAuth2 authentication
 
-Ensure `alembic.ini` has `script_location = alembic` and `sqlalchemy.url` points to your DB URL (or use:
-```bash
-export SQLALCHEMY_URL=sqlite:///./noc_agent.db
-```
+Metrics Endpoint for Prometheus
 
-Create an initial migration:
-```bash
-alembic revision --autogenerate -m "initial models"
-``` 
-Apply migrations:
-```bash
-alembic upgrade head
-```
+CLI entry point noc-agent for local operations
 
-Alternatively, you can create tables directly:
-```bash
-python - << 'EOF'
-from agent.db import init_db
-init_db()
-EOF
-```
-## Run Tests
+Features
 
-Install pytest:
-```bash
-pip install pytest
-```
+Agent Mode (runs continuous scans and feeds to central server)
 
-Then:
-```bash
-pytest --maxfail=1 --disable-warnings -q
-```
+Server Mode (FastAPI server providing scan/training/inference endpoints)
 
-## Installation
+Cross-Platform support (Windows, macOS, Linux)
 
-```bash
-pip install .
-# build executable:
-pyinstaller noc_agent.spec
-# build Docker image:
-docker build -t noc_agent:latest .
-```
+Packaging as a pip-installable package with a console script
 
-## Configuration
+Service Definitions for Systemd, launchd, and NSSM
 
-Edit `config.yaml` or set `$NOC_AGENT_CONFIG`. 
-- **database.url**: connection string for SQL DB.  
-- **auth_defaults.initial_users**: created at first launch.  
-- **rbac.roles**: map roles to endpoint permissions.
+Installation
 
-## Dynamic User Management
+# Install via pip (PyPI or local wheel)
+pip install noc_agent
 
-### List Users (admin)
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:8000/users
-```
+Prerequisites
 
-### Create User (admin)
-```bash
-curl -X POST -H "Authorization: Bearer <token>" \
-  -d "username=jane&password=secret&roles=user" \
-  http://localhost:8000/users
-```
-## Future
+Python 3.8+
 
-- SSO/OIDC integration for single sign-on.
+nmap binary available in PATH
 
-## CLI Training
+(Optional) Deep learning backend for real NLP: transformers + torch or tensorflow-macos
 
-```bash
-python train_anomaly.py --data-file path/to/data.csv [--save-path models/model.pkl]
-```
+Quickstart
 
-## API Usage
+Generate a config:
 
-Start server:
-```bash
-uvicorn agent.api:app --reload
-```
+# config.yaml
+scan:
+  targets: "192.168.1.0/24"
+  ports: "1-1024"
+anomaly:
+  params:
+    n_estimators: 100
+threat:
+  params:
+    n_estimators: 100
+paths:
+  anomaly_data: "/path/to/anomaly_data.csv"
+  threat_data: "/path/to/threat_data.csv"
 
-### OAuth2 Authentication
+Run the server:
 
-Obtain token:
-```bash
-curl -X POST http://localhost:8000/token \
-    -d "username=alice" -d "password=YOUR_PWD"
-```
+export CONFIG_PATH=/path/to/config.yaml
+uvicorn agent.api:app --reload --host 0.0.0.0 --port 8000
 
-Use in calls:
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:8000/model_info
-```
+Obtain a token:
 
-### Endpoints and Permissions
+curl -X POST -F "username=admin" -F "password=password123" http://localhost:8000/token
 
-| Endpoint        | Roles Allowed           |
-| --------------- | ----------------------- |
-| GET /health     | public                  |
-| POST /token     | public                  |
-| GET /model_info | admin                   |
-| POST /train     | admin                   |
-| POST /infer     | admin, user             |
-| POST /scan      | admin, user             |
-| POST /capture_once | admin, user          |
-| GET /metrics    | public                  |
-| WS /ws/packets  | admin                   |
+Scan and inference:
 
-### Metrics
+curl -H "Authorization: Bearer <TOKEN>" -X POST http://localhost:8000/scan
+curl -H "Authorization: Bearer <TOKEN>" -X POST -d '{"features": [..]}' http://localhost:8000/infer/anomaly
 
-Prometheus scrape at `GET /metrics`.
+CLI Usage
+
+After installation, run:
+
+noc-agent --help
+
+Will display commands for starting the agent in local or server mode.
+
+Packaging & Distribution
+
+# Build distributions
+pip install build
+python -m build --sdist --wheel
+
+# Install locally
+pip install dist/noc_agent-0.1.0-py3-none-any.whl
+
+# Publish to PyPI
+pip install twine
+twine upload dist/*
+
+Running as a Service
+
+Linux: create a systemd unit in /etc/systemd/system/noc-agent.service
+
+macOS: place the launchd plist in ~/Library/LaunchAgents
+
+Windows: use NSSM to register the noc-agent console script
+
+(Check the docs/ folder for full examples.)
+
+Contributing
+
+Fork the repo
+
+Create a feature branch
+
+Commit your changes
+
+Open a PR
+
+Please adhere to the code style and add tests under tests/.
+
+License
+
+This project is licensed under the MIT License—see the LICENSE file for details.
+

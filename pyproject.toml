@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "noc_agent"
+version = "0.1.0"
+description = "Network Operations Center agent with scanning, AI inference, and API"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [ { name = "Prasannakumar Kanderi", email = "mail2kanderi@gmail.com" } ]
+requires-python = ">=3.8"
+
+# List dependencies as an array per PEP 621
+dependencies = [
+  "fastapi>=0.100.0",
+  "uvicorn[standard]>=0.22.0",
+  "python-nmap>=0.7.1",
+  "scapy>=2.5.0",
+  "pyyaml>=6.0",
+  "python-multipart>=0.0.6",
+  "prometheus-client>=0.16.0",
+  "PyJWT>=2.8.0",
+  "scikit-learn>=1.2.2",
+  "joblib>=1.2.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pkanderi-abio/noc_agent"
+
+[project.entry-points.console_scripts]
+noc-agent = "agent.agent:main"
+noc_agent = "agent.agent:main"

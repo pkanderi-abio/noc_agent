@@ -1,61 +1,51 @@
 import asyncio
+import click
 import logging
-from agent.config import Config
 from agent.scanner import NmapScanner
 from agent.capture import PacketCapture
-from agent.anomaly import AnomalyDetector
+from agent.auth import get_current_user
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("noc_agent")
 
-async def scan_loop(scanner, interval):
-    while True:
-        logger.info("Starting network scan...")
-        try:
-            result = scanner.scan()
-            logger.info(f"Scan result: {result}")
-        except Exception as e:
-            logger.error(f"Scan error: {e}")
-        await asyncio.sleep(interval)
+async def async_main():
+"""
+Core agent loop: runs scanning and packet capture concurrently.
+"""
+scanner = NmapScanner()
+capture = PacketCapture()
 
-async def capture_loop(capture, callback):
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, capture.start, callback)
-
-async def main():
-    # Load configuration
-    cfg = Config.load()
-
-    scanner = NmapScanner(
-        targets=cfg.scan.get('targets'),
-        ports=cfg.scan.get('ports')
-    )
-    capture = PacketCapture(
-        iface=cfg.capture.get('iface'),
-        bpf_filter=cfg.capture.get('bpf_filter'),
-        count=cfg.capture.get('count')
-    )
-    detector = AnomalyDetector(
-        model_path=cfg.anomaly.get('model_path'),
-        contamination=cfg.anomaly.get('contamination')
-    )
-
-    def packet_callback(pkt):
-        summary = pkt.summary()
-        logger.info(f"Packet: {summary}")
-        # Example feature extraction stub
-        features = [len(pkt), pkt.time]
-        if detector.detect(features):
-            logger.warning("Anomalous packet detected")
-
-    tasks = [
-        asyncio.create_task(scan_loop(scanner, cfg.scan.get('interval', 300))),
-        asyncio.create_task(capture_loop(capture, packet_callback))
-    ]
-    await asyncio.gather(*tasks)
-
-if __name__ == "__main__":
+async def run_scan_loop():
+    logger.info("Starting network scan...")
     try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Agent stopped by user")
+        result = scanner.scan()
+        logger.info(f"Scan result: {result}")
+    except Exception as e:
+        logger.error(f"Scan error: {e}")
+
+async def run_capture_loop():
+    logger.info("Starting packet capture...")
+    def callback(pkt):
+        logger.info(f"Captured packet: {pkt.summary()}")
+    try:
+        await asyncio.get_event_loop().run_in_executor(None, capture.start, callback)
+    except Exception as e:
+        logger.error(f"Capture error: {e}")
+
+await asyncio.gather(run_scan_loop(), run_capture_loop())
+
+@click.command()
+@click.option("--mode", type=click.Choice(["agent", "server"]), default="agent", help="Mode to run: agent or server.")
+def main(mode):
+"""
+noc-agent CLI entry point.
+"""
+if mode == "agent":
+# Run the asynchronous agent loop
+asyncio.run(async_main())
+else:
+# Launch FastAPI server synchronously
+from uvicorn import run
+run("agent.api:app", host="0.0.0.0", port=8000, reload=True)
+
+if name == "main":
+main()
