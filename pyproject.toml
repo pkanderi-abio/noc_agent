@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "noc_agent"
+name = "noc-agent"
 version = "0.1.0"
 description = "Network Operations Center agent with scanning, AI inference, and API"
 readme = "README.md"
@@ -28,6 +28,5 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/pkanderi-abio/noc_agent"
 
-[project.entry-points.console_scripts]
+[project.scripts]
 noc-agent = "agent.agent:main"
-noc_agent = "agent.agent:main"
