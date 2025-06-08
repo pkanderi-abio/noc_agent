@@ -1,0 +1,2 @@
+[console_scripts]
+noc-agent = agent.agent:main
