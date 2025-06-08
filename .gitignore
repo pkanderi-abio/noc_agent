@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Docker
+**/Dockerfile
+**/docker-compose*.yml
+
+# Config & secrets
+config.yaml
+*.key
+*.pem
+
+# Machine learning artifacts
+*.pkl
+*.joblib
+*.h5
+
+# Logs
+*.log
+
+# VSCode / IDEs
+.vscode/
+*.sublime-*
+.idea/
+
+# macOS
+.DS_Store
