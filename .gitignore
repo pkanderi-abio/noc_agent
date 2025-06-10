@@ -37,3 +37,6 @@ config.yaml
 
 # macOS
 .DS_Store
+
+# database files
+*.db

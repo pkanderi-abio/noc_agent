@@ -8,12 +8,12 @@ with open('README.md', 'r', encoding='utf-8') as f:
 setup(
     name='noc_agent',
     version='0.1.0',
-    author='Your Name',
+    author='Prasannakumar Kanderi',
     author_email='support@hhitsolutions.com',
     description='Network Operations Center agent with scanning, anomaly detection, and API',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/your_org/noc_agent',
+    url='https://github.com/pkanderi-abio/noc_agent',
     # Automatically include the 'agent' package and subpackages
     packages=find_packages(include=['agent', 'agent.*']),
     # Include top-level scripts as modules
@@ -37,7 +37,10 @@ setup(
         'alembic',
         'pytest',
         'pytest-asyncio',
-        'httpx'
+        'httpx',
+        'passlib[bcrypt]',
+        'SQLAlchemy-Utils',
+        'python-multipart',
     ],
     entry_points={
         'console_scripts': [
@@ -51,3 +54,8 @@ setup(
     ],
     python_requires='>=3.8',
 )
+entry_points={
+    'console_scripts': [
+        'noc-agent=noc_agent.agent:main',
+    ],
+},

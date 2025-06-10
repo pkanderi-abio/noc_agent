@@ -1,3 +1,8 @@
+
+import sys
+print(sys.path)
+import agent
+print(agent.__file__)
 import asyncio
 from fastapi import FastAPI, Depends, HTTPException, status, WebSocket
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,8 +14,10 @@ from agent.scanner import NmapScanner
 from agent.capture import PacketCapture
 from agent.auth import (
     create_access_token, oauth2_scheme,
-    authenticate_user, get_current_user, role_required, get_db
+    authenticate_user, get_current_user, role_required
 )
+from agent.db import get_db as db
+from fastapi import Depends
 from datetime import timedelta
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -40,18 +47,17 @@ detector = AnomalyDetector(
     model_path=cfg.anomaly.get('model_path'),
     contamination=cfg.anomaly.get('contamination')
 )
-scanner = NmapScanner(
-    targets=cfg.scan.get('targets'),
-    ports=cfg.scan.get('ports')
-)
+
+scanner = NmapScanner()  # Config is loaded in NmapScanner
+
 capture_cfg = cfg.capture
 
 @app.post("/token")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db)
 ):
-    user = authenticate_user(db, form_data.username, form_data.password)
+    user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -59,18 +65,17 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
-        data={"sub": user.username, "roles": [r.name for r in user.roles]},
+        data={"sub": user["username"], "roles": user["roles"]},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/users", dependencies=[Depends(role_required("user_manage"))])
-
-def list_users(db: Session = Depends(get_db)):
-    return [ {"username": u.username, "roles": [r.name for r in u.roles]} for u in db.query(getattr(__import__('agent.db', fromlist=['User']) ,'User')).all() ]
+def list_users(db: Session = Depends(db)):
+    return [{"username": u.username, "roles": [r.name for r in u.roles]} for u in db.query(getattr(__import__('agent.db', fromlist=['User']), 'User')).all()]
 
 @app.post("/users", dependencies=[Depends(role_required("user_manage"))])
-def create_user(username: str, password: str, roles: list[str], db: Session = Depends(get_db)):
+def create_user(username: str, password: str, roles: list[str], db: Session = Depends(db)):
     from agent.db import User, Role
     if db.query(User).filter_by(username=username).first():
         raise HTTPException(status_code=400, detail="User already exists")
@@ -85,7 +90,7 @@ def create_user(username: str, password: str, roles: list[str], db: Session = De
     return {"username": user.username, "roles": [r.name for r in user.roles]}
 
 @app.delete("/users/{username}", dependencies=[Depends(role_required("user_manage"))])
-async def delete_user(username: str, db: Session = Depends(get_db)):
+async def delete_user(username: str, db: Session = Depends(db)):
     """Delete a user account by username."""
     user = db.query(User).filter_by(username=username).first()
     if not user:
@@ -95,7 +100,7 @@ async def delete_user(username: str, db: Session = Depends(get_db)):
     return {"status": "deleted", "username": username}
 
 @app.post("/users/{username}/reset_password", dependencies=[Depends(role_required("user_manage"))])
-async def reset_password(username: str, new_password: str, db: Session = Depends(get_db)):
+async def reset_password(username: str, new_password: str, db: Session = Depends(db)):
     """Reset a user's password."""
     user = db.query(User).filter_by(username=username).first()
     if not user:
@@ -105,7 +110,7 @@ async def reset_password(username: str, new_password: str, db: Session = Depends
     return {"status": "password_reset", "username": username}
 
 @app.put("/users/{username}/roles", dependencies=[Depends(role_required("user_manage"))])
-async def update_roles(username: str, roles: list[str], db: Session = Depends(get_db)):
+async def update_roles(username: str, roles: list[str], db: Session = Depends(db)):
     """Update roles assigned to a user."""
     user = db.query(User).filter_by(username=username).first()
     if not user:

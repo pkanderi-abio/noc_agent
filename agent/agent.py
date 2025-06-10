@@ -5,6 +5,7 @@ import logging
 from agent.scanner import NmapScanner
 from agent.capture import PacketCapture
 from agent.auth import get_current_user
+from agent.db import init_db
 
 logger = logging.getLogger("noc_agent")
 
@@ -52,6 +53,7 @@ def main(mode):
         asyncio.run(async_main())
     else:
         # Launch FastAPI server synchronously
+        init_db()
         from uvicorn import run
         run(
             "agent.api:app",
